@@ -33,10 +33,10 @@ jobs:
       - name: Build and push container image to registry
         uses: docker/build-push-action@v2
         with:
-          context: "{{defaultContext}}:src/web-api-test"
+          context: "{{defaultContext}}:src"
           push: true
           tags: okpacatestacr.azurecr.io/test-app:${{ github.sha }}
-          #file: src/web-api-test/Dockerfile
+          file: aca-todo.API/Dockerfile
 
 
   deploy:
