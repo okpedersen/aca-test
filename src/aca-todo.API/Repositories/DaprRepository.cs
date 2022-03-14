@@ -13,6 +13,8 @@ namespace aca_todo.API.Repositories
         private readonly ILogger<DaprRepository> _logger;
         private readonly DaprClient _daprClient;
 
+        private string? _etag = null;
+
         private record TodoItemDto(Guid Id, string Description, bool Completed);
         private record TodoListDto(List<TodoItemDto> TodoItems);
 
@@ -24,7 +26,8 @@ namespace aca_todo.API.Repositories
 
         public async Task<TodoList> GetTodoListAsync()
         {
-            var dto = await _daprClient.GetStateAsync<TodoListDto?>(storeName: DAPR_STORE_NAME, key: "todos");
+            (var dto, var etag) = await _daprClient.GetStateAndETagAsync<TodoListDto?>(storeName: DAPR_STORE_NAME, key: "todos");
+            _etag = etag;
             if (dto is null || dto.TodoItems is null) // TODO: Workaround for first time init
             {
                 return new TodoList();
@@ -35,7 +38,11 @@ namespace aca_todo.API.Repositories
         public async Task UpdateTodoListAsync(TodoList todoList)
         {
             var dto = new TodoListDto(TodoItems: todoList.GetTodoItems().Select(item => new TodoItemDto(item.Id, item.Description, item.Completed)).ToList());
-            await _daprClient.SaveStateAsync<TodoListDto>(storeName: DAPR_STORE_NAME, key: "todos", value: dto);
+            var success = await _daprClient.TrySaveStateAsync<TodoListDto>(storeName: DAPR_STORE_NAME, etag: _etag, key: "todos", value: dto);
+            if (!success)
+            {
+                throw new InvalidOperationException();
+            }
         }
     }
 
