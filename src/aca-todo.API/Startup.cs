@@ -27,6 +27,8 @@ namespace aca_todo.API
             {
                 c.SwaggerDoc("v1", new OpenApiInfo { Title = "aca_todo.API", Version = "v1" });
             });
+
+            services.AddApplicationInsightsTelemetry();
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
