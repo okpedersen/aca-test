@@ -55,4 +55,27 @@ public class TodosControllerTests
       Assert.Equal(description, item.Description);
       Assert.True(item.Completed);
     }
+
+    [Fact]
+    public async Task DeleteTodo_Should_DeleteTodo()
+    {
+      var repository = new InMemoryTodoListRepository();
+      var todoController = new TodosController(new NullLogger<TodosController>(), repository);
+
+      const string description = "Test todo";
+      var todoRequest = new AddTodoRequest(description);
+      var addTodoResult = await todoController.AddTodo(todoRequest);
+      var addTodoOkResult = Assert.IsType<OkObjectResult>(addTodoResult);
+      var addTodoResponse = Assert.IsType<AddTodoResponse>(addTodoOkResult.Value);
+      var id = addTodoResponse.Id;
+
+      await todoController.DeleteTodo(id);
+
+      var todosResult = await todoController.GetTodos();
+      var todosOkResult = Assert.IsType<OkObjectResult>(todosResult);
+      var todosResponse = Assert.IsType<GetTodosResponse>(todosOkResult.Value);
+      
+      var item = todosResponse.todoItems.FirstOrDefault(item => item.Id == id);
+      Assert.Null(item);
+    }
 }

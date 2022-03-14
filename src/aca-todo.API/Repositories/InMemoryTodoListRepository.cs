@@ -8,7 +8,7 @@ namespace aca_todo.API.Repositories
 
         public Task<TodoList> GetTodoListAsync()
         {
-            return Task.FromResult(_todoList);
+            return Task.FromResult(_todoList.Clone());
         }
 
         public Task UpdateTodoListAsync(TodoList todoList)

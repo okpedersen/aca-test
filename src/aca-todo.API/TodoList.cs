@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace aca_todo.API
 {
@@ -35,11 +36,25 @@ namespace aca_todo.API
             var index = _todoItems.FindIndex(item => item.Id == todoId);
             if (index == -1)
             {
-              throw new ArgumentException("Invalid todoId");
+              throw new ArgumentException(nameof(todoId));
             }
             _todoItems[index].Complete();
         }
 
+        public void DeleteTodo(Guid todoId)
+        {
+            var index = _todoItems.FindIndex(item => item.Id == todoId);
+            if (index == -1)
+            {
+              throw new ArgumentException(nameof(todoId));
+            }
+            _todoItems.RemoveAt(index);
+        }
+
+        public TodoList Clone()
+        {
+            return new TodoList(_todoItems.Select(x => x.Clone()).ToList());
+        }
     }
 
     public class TodoItem
@@ -64,6 +79,11 @@ namespace aca_todo.API
         public void Complete()
         {
             Completed = true;
+        }
+
+        public TodoItem Clone()
+        {
+          return new TodoItem(Id, Description, Completed);
         }
     }
 }

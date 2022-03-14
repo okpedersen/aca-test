@@ -20,9 +20,9 @@ namespace aca_todo.API
         // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
         {
-            services.AddSingleton<ITodoListRepository, InMemoryTodoListRepository>();
+            services.AddSingleton<ITodoListRepository, DaprRepository>();
 
-            services.AddControllers();
+            services.AddControllers().AddDapr();
             services.AddSwaggerGen(c =>
             {
                 c.SwaggerDoc("v1", new OpenApiInfo { Title = "aca_todo.API", Version = "v1" });

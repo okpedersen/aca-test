@@ -60,7 +60,34 @@ namespace aca_todo.API.Controllers
 
             try
             {
+                await Task.Delay(100);
                 todoList.CompleteTodo(todoId);
+                await Task.Delay(100);
+            }
+            catch (ArgumentException e)
+            {
+                _logger.LogError(e, "Got error");
+                return NotFound($"Todo with id {todoId} is unrecognized");
+            }
+
+            await _todoListRepository.UpdateTodoListAsync(todoList);
+
+            return NoContent();
+        }
+
+        [HttpDelete]
+        [Route("{todoId}")]
+        [Produces(MediaTypeNames.Application.Json)]
+        [ProducesResponseType(StatusCodes.Status204NoContent)]
+        public async Task<IActionResult> DeleteTodo([FromRoute] Guid todoId)
+        {
+            var todoList = await _todoListRepository.GetTodoListAsync();
+
+            try
+            {
+                await Task.Delay(100);
+                todoList.DeleteTodo(todoId);
+                await Task.Delay(100);
             }
             catch (ArgumentException)
             {
