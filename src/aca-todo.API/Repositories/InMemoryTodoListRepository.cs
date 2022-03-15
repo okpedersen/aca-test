@@ -1,19 +1,21 @@
+using System;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 
 namespace aca_todo.API.Repositories
 {
     public class InMemoryTodoListRepository : ITodoListRepository
     {
-        public static TodoList _todoList = new();
+        private static readonly Dictionary<Guid, TodoList> _todoLists = new();
 
-        public Task<TodoList> GetTodoListAsync()
+        public Task<TodoList> GetTodoListAsync(Guid userId)
         {
-            return Task.FromResult(_todoList.Clone());
+            return Task.FromResult(_todoLists[userId].Clone());
         }
 
-        public Task UpdateTodoListAsync(TodoList todoList)
+        public Task UpdateTodoListAsync(Guid userId, TodoList todoList)
         {
-            _todoList = todoList;
+            _todoLists[userId] = todoList;
             return Task.CompletedTask;
         }
     }

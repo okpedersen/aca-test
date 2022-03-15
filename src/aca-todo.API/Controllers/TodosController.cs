@@ -11,12 +11,12 @@ using Microsoft.Extensions.Logging;
 namespace aca_todo.API.Controllers
 {
     [ApiController]
-    [Route("[controller]")]
+    [Route("/users/{userId}/[controller]")]
     public class TodosController : ControllerBase
     {
         private readonly ILogger<TodosController> _logger;
         private readonly ITodoListRepository _todoListRepository;
-        const int RETRIES = 20;
+        private const int RETRIES = 20;
 
         public TodosController(ILogger<TodosController> logger, ITodoListRepository todoListRepository)
         {
@@ -24,20 +24,40 @@ namespace aca_todo.API.Controllers
             _todoListRepository = todoListRepository;
         }
 
-
-        [HttpPost]
+        [HttpPut]
         [Route("")]
         [Produces(MediaTypeNames.Application.Json)]
-        [ProducesResponseType(typeof(AddTodoResponse), StatusCodes.Status200OK)]
-        public async Task<IActionResult> AddTodo([FromBody] AddTodoRequest request)
+        [ProducesResponseType(StatusCodes.Status204NoContent)]
+        public async Task<IActionResult> AddNewList([FromRoute] Guid userId)
         {
             for (int i = 0; i < RETRIES; i++)
             {
                 try
                 {
-                    var todoList = await _todoListRepository.GetTodoListAsync();
+                    var todoList = new TodoList();
+                    await _todoListRepository.UpdateTodoListAsync(userId, todoList);
+                    return NoContent();
+                }
+                catch (InvalidOperationException)
+                { }
+            }
+
+            return new ConflictResult();
+        }
+
+        [HttpPost]
+        [Route("")]
+        [Produces(MediaTypeNames.Application.Json)]
+        [ProducesResponseType(typeof(AddTodoResponse), StatusCodes.Status200OK)]
+        public async Task<IActionResult> AddTodo([FromRoute] Guid userId, [FromBody] AddTodoRequest request)
+        {
+            for (int i = 0; i < RETRIES; i++)
+            {
+                try
+                {
+                    var todoList = await _todoListRepository.GetTodoListAsync(userId);
                     var todoId = todoList.AddTodo(request.Description);
-                    await _todoListRepository.UpdateTodoListAsync(todoList);
+                    await _todoListRepository.UpdateTodoListAsync(userId, todoList);
                     return Ok(new AddTodoResponse(Id: todoId));
                 }
                 catch (InvalidOperationException)
@@ -45,22 +65,20 @@ namespace aca_todo.API.Controllers
             }
 
             return new ConflictResult();
-
         }
 
         [HttpGet]
         [Route("")]
         [Produces(MediaTypeNames.Application.Json)]
         [ProducesResponseType(typeof(GetTodosResponse), StatusCodes.Status200OK)]
-        public async Task<IActionResult> GetTodos()
+        public async Task<IActionResult> GetTodos([FromRoute] Guid userId)
         {
             for (int i = 0; i < RETRIES; i++)
             {
                 try
                 {
-                    var todoList = await _todoListRepository.GetTodoListAsync();
+                    var todoList = await _todoListRepository.GetTodoListAsync(userId);
                     var todoItems = todoList.GetTodoItems();
-                    _logger.LogInformation($"Length: {todoItems.Count}");
                     return Ok(new GetTodosResponse(todoItems.Select(item => new TodoItem(item.Id, item.Description, item.Completed)).ToList()));
                 }
                 catch (InvalidOperationException)
@@ -68,21 +86,19 @@ namespace aca_todo.API.Controllers
             }
 
             return new ConflictResult();
-
         }
-
 
         [HttpPut]
         [Route("{todoId}/complete")]
         [Produces(MediaTypeNames.Application.Json)]
         [ProducesResponseType(StatusCodes.Status204NoContent)]
-        public async Task<IActionResult> UpdateTodo([FromRoute] Guid todoId)
+        public async Task<IActionResult> UpdateTodo([FromRoute] Guid userId, [FromRoute] Guid todoId)
         {
             for (int i = 0; i < RETRIES; i++)
             {
                 try
                 {
-                    var todoList = await _todoListRepository.GetTodoListAsync();
+                    var todoList = await _todoListRepository.GetTodoListAsync(userId);
 
                     try
                     {
@@ -94,7 +110,7 @@ namespace aca_todo.API.Controllers
                         return NotFound($"Todo with id {todoId} is unrecognized");
                     }
 
-                    await _todoListRepository.UpdateTodoListAsync(todoList);
+                    await _todoListRepository.UpdateTodoListAsync(userId, todoList);
 
                     return NoContent();
                 }
@@ -109,13 +125,13 @@ namespace aca_todo.API.Controllers
         [Route("{todoId}")]
         [Produces(MediaTypeNames.Application.Json)]
         [ProducesResponseType(StatusCodes.Status204NoContent)]
-        public async Task<IActionResult> DeleteTodo([FromRoute] Guid todoId)
+        public async Task<IActionResult> DeleteTodo([FromRoute] Guid userId, [FromRoute] Guid todoId)
         {
             for (int i = 0; i < RETRIES; i++)
             {
                 try
                 {
-                    var todoList = await _todoListRepository.GetTodoListAsync();
+                    var todoList = await _todoListRepository.GetTodoListAsync(userId);
 
                     try
                     {
@@ -126,7 +142,7 @@ namespace aca_todo.API.Controllers
                         return NotFound($"Todo with id {todoId} is unrecognized");
                     }
 
-                    await _todoListRepository.UpdateTodoListAsync(todoList);
+                    await _todoListRepository.UpdateTodoListAsync(userId, todoList);
 
                     return NoContent();
                 }
