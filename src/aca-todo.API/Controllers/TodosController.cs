@@ -4,6 +4,7 @@ using System.Linq;
 using System.Net.Mime;
 using System.Threading.Tasks;
 using aca_todo.API.Repositories;
+using Dapr;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
@@ -11,7 +12,8 @@ using Microsoft.Extensions.Logging;
 namespace aca_todo.API.Controllers
 {
     [ApiController]
-    [Route("/users/{userId}/[controller]")]
+    //[Route("/users/{userId}/[controller]")]
+    [Route("/users")] // Route cannot contain parameter for Dapr pubsub
     public class TodosController : ControllerBase
     {
         private readonly ILogger<TodosController> _logger;
@@ -24,16 +26,20 @@ namespace aca_todo.API.Controllers
             _todoListRepository = todoListRepository;
         }
 
-        [HttpPut]
+        [Topic("pubsub", "users")]
+        [HttpPost]
         [Route("")]
         [Produces(MediaTypeNames.Application.Json)]
         [ProducesResponseType(StatusCodes.Status204NoContent)]
-        public async Task<IActionResult> AddNewList([FromRoute] Guid userId)
+        public async Task<IActionResult> AddNewList([FromBody] NewListRequest request)
         {
+            var userId = request.UserId;
+            _logger.LogInformation("New list");
             for (int i = 0; i < RETRIES; i++)
             {
                 try
                 {
+                    _logger.LogInformation("New list");
                     var todoList = new TodoList();
                     await _todoListRepository.UpdateTodoListAsync(userId, todoList);
                     return NoContent();
@@ -46,7 +52,7 @@ namespace aca_todo.API.Controllers
         }
 
         [HttpPost]
-        [Route("")]
+        [Route("{userId}/todos")]
         [Produces(MediaTypeNames.Application.Json)]
         [ProducesResponseType(typeof(AddTodoResponse), StatusCodes.Status200OK)]
         public async Task<IActionResult> AddTodo([FromRoute] Guid userId, [FromBody] AddTodoRequest request)
@@ -68,7 +74,7 @@ namespace aca_todo.API.Controllers
         }
 
         [HttpGet]
-        [Route("")]
+        [Route("{userId}/todos")]
         [Produces(MediaTypeNames.Application.Json)]
         [ProducesResponseType(typeof(GetTodosResponse), StatusCodes.Status200OK)]
         public async Task<IActionResult> GetTodos([FromRoute] Guid userId)
@@ -89,7 +95,7 @@ namespace aca_todo.API.Controllers
         }
 
         [HttpPut]
-        [Route("{todoId}/complete")]
+        [Route("{userId}/todos/{todoId}/complete")]
         [Produces(MediaTypeNames.Application.Json)]
         [ProducesResponseType(StatusCodes.Status204NoContent)]
         public async Task<IActionResult> UpdateTodo([FromRoute] Guid userId, [FromRoute] Guid todoId)
@@ -122,7 +128,7 @@ namespace aca_todo.API.Controllers
         }
 
         [HttpDelete]
-        [Route("{todoId}")]
+        [Route("{userId}/todos/{todoId}")]
         [Produces(MediaTypeNames.Application.Json)]
         [ProducesResponseType(StatusCodes.Status204NoContent)]
         public async Task<IActionResult> DeleteTodo([FromRoute] Guid userId, [FromRoute] Guid todoId)
@@ -153,6 +159,8 @@ namespace aca_todo.API.Controllers
             return new ConflictResult();
         }
     }
+
+    public record NewListRequest(Guid UserId);
 
     public record AddTodoRequest(string Description);
     public record AddTodoResponse(Guid Id);

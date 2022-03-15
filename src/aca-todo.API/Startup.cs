@@ -46,10 +46,12 @@ namespace aca_todo.API
 
             app.UseRouting();
 
+            app.UseCloudEvents();
             app.UseAuthorization();
 
             app.UseEndpoints(endpoints =>
             {
+                endpoints.MapSubscribeHandler();
                 endpoints.MapControllers();
             });
         }
